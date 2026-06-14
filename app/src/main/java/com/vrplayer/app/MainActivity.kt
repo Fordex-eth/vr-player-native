@@ -15,6 +15,7 @@ import android.net.Uri
 import android.opengl.GLSurfaceView
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.os.Handler
 import android.os.Looper
 import android.view.GestureDetector
@@ -351,13 +352,35 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                             updatePlayPauseIcon()
                             if (isPlaying) hideSpinner()
                         }
+                        override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
+                            Log.i("VRPlayer", "Video size: ${videoSize.width}x${videoSize.height}, " +
+                                    "pixelWidthHeightRatio=${videoSize.pixelWidthHeightRatio}")
+                        }
+                        override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
+                            for (group in tracks.groups) {
+                                if (group.type == androidx.media3.common.C.TRACK_TYPE_VIDEO) {
+                                    for (i in 0 until group.length) {
+                                        val fmt = group.getTrackFormat(i)
+                                        Log.i("VRPlayer", "Video track: " +
+                                                "sampleMimeType=${fmt.sampleMimeType}, " +
+                                                "width=${fmt.width}, height=${fmt.height}, " +
+                                                "frameRate=${fmt.frameRate}, " +
+                                                "codecs=${fmt.codecs}")
+                                    }
+                                }
+                            }
+                        }
                         override fun onPlayerError(error: PlaybackException) {
                             hideSpinner()
                             val msg = error.localizedMessage ?: "Unknown error"
+                            val errCode = error.errorCodeName
+                            Log.e("VRPlayer", "Playback error [$errCode]: $msg")
                             if (msg.contains("NO_EXCEEDS_CAPABILITIES")) {
                                 showError("Video codec/resolution not supported. Try H.264 instead of H.265, or a lower resolution.")
+                            } else if (msg.contains("codec") || msg.contains("Codec")) {
+                                showError("Codec error: your device doesn't support this video format. Try a different video file.")
                             } else {
-                                showError("Playback error: $msg")
+                                showError("Playback error [$errCode]: $msg")
                             }
                         }
                     })
@@ -568,9 +591,10 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         }
         resetGuiTimer()
 
-        // Reset drag
+        // Reset view state for new video
         renderer.dragLon = 0f
         renderer.dragLat = 0f
+        renderer.fov = 75f
 
         // Persist read access across reboots
         try {
