@@ -617,6 +617,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
     // ── Fullscreen ──
 
+    @Suppress("DEPRECATION")
     private fun toggleFullscreen() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             val decor = window.decorView
@@ -948,6 +949,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         }
     }
 
+    @Suppress("DEPRECATION")
     override fun onRequestPermissionsResult(
         requestCode: Int, permissions: Array<String>, grantResults: IntArray
     ) {
