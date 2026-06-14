@@ -29,6 +29,9 @@ class VrRenderer : GLSurfaceView.Renderer {
     /** Caller calls this to get a Surface for ExoPlayer. */
     var onSurfaceReady: ((SurfaceTexture) -> Unit)? = null
 
+    /** Called from the frame-available callback thread to request a render pass. */
+    var onRequestRender: (() -> Unit)? = null
+
     // ── Private lock for cross-thread safety (avoids public `this` lock) ──
     private val lock = Any()
 
@@ -170,7 +173,10 @@ class VrRenderer : GLSurfaceView.Renderer {
             st.setDefaultBufferSize(7680, 4320)
         }
         surfaceTexture?.setOnFrameAvailableListener {
-            frameAvailable = true
+            synchronized(lock) {
+                frameAvailable = true
+            }
+            onRequestRender?.invoke()
         }
         onSurfaceReady?.invoke(surfaceTexture!!)
 

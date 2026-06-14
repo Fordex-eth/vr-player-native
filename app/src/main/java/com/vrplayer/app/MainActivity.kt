@@ -304,6 +304,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         renderer.onSurfaceReady = { surfaceTexture ->
             runOnUiThread { initPlayer(surfaceTexture) }
         }
+        renderer.onRequestRender = { glSurfaceView.requestRender() }
         renderer.useGyro = settings.motionSensor
         renderer.fov = 75f
         renderer.isFisheye = settings.lensType == "fisheye"
@@ -318,7 +319,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         }
         renderer.setQuality(h, v)
         glSurfaceView.setRenderer(renderer)
-        glSurfaceView.renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
+        glSurfaceView.renderMode = GLSurfaceView.RENDERMODE_WHEN_DIRTY
     }
 
     @UnstableApi
@@ -525,6 +526,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                     val dist = pinchDistance(event)
                     val ratio = pinchDist0 / dist
                     renderer.fov = (pinchFov0 * ratio).coerceIn(30f, 150f)
+                    glSurfaceView.requestRender()
                     return
                 }
 
@@ -543,6 +545,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                         renderer.dragLon += dx * 0.3f * inv
                         renderer.dragLat += dy * 0.3f * inv
                         renderer.dragLat = renderer.dragLat.coerceIn(-85f, 85f)
+                        glSurfaceView.requestRender()
                     }
 
                     lastTouchX = event.x
