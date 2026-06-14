@@ -200,7 +200,9 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 player = null
             }
         }
-        audioFocusRequest?.let { audioManager?.abandonAudioFocusRequest(it) }
+        if (Build.VERSION.SDK_INT >= 26) {
+            audioFocusRequest?.let { audioManager?.abandonAudioFocusRequest(it) }
+        }
         super.onDestroy()
     }
 
@@ -1000,10 +1002,10 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         }
     }
 
-    @Suppress("DEPRECATION")
     override fun onRequestPermissionsResult(
         requestCode: Int, permissions: Array<String>, grantResults: IntArray
     ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         // Proceed regardless — SAF file picker works without storage permission
     }
 }

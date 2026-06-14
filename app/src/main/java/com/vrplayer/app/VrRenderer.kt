@@ -232,19 +232,25 @@ class VrRenderer : GLSurfaceView.Renderer {
                 if (frameAvailable) {
                     surfaceTexture?.updateTexImage()
                     surfaceTexture?.getTransformMatrix(texMatrix)
+
+                    // Remove the SurfaceTexture's built-in Y flip. Android's
+                    // SurfaceTexture matrix has y=0 at the bottom (graphics buffer
+                    // convention) but OpenGL sphere textures expect y=0 at the top.
+                    // For environment/sphere mapping we need to undo this so the
+                    // top of the video maps to the top of the sphere.
+                    // IMPORTANT: this must be inside the frameAvailable block because
+                    // the Y-flip is applied in-place. If applied on every frame but
+                    // getTransformMatrix only runs on new frames, the already-flipped
+                    // matrix gets flipped again → alternating correct/inverted = flicker.
+                    texMatrix[5] = -texMatrix[5]   // negate Y scale
+                    texMatrix[13] = 1f - texMatrix[13]  // adjust Y offset
+
                     frameAvailable = false
                 }
             }
         } catch (e: Exception) {
             Log.w("VrRenderer", "Frame update failed", e)
         }
-
-        // Remove the SurfaceTexture's built-in Y flip. Android's SurfaceTexture
-        // matrix has y=0 at the bottom (graphics buffer convention) but OpenGL
-        // sphere textures expect y=0 at the top. For environment/sphere mapping
-        // we need to undo this so the top of the video maps to the top of the sphere.
-        texMatrix[5] = -texMatrix[5]   // negate Y scale
-        texMatrix[13] = 1f - texMatrix[13]  // adjust Y offset
 
         // Compose: apply layout transform AFTER the SurfaceTexture's own transform.
         // This way the SBS/OU half-selection is applied on top of the video frame's
