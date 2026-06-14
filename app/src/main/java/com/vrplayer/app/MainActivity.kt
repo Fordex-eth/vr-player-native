@@ -709,7 +709,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
     data class VrSettings(
         var motionSensor: Boolean = true,
-        var invertControls: Boolean = false,
+        var invertControls: Boolean = true,
         var lensType: String = "normal",
         var projection: String = "180",
         var layout3d: String = "sbs",
@@ -721,7 +721,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     private fun loadSettings() {
         settings = VrSettings(
             motionSensor = prefs.getBoolean("motionSensor", true),
-            invertControls = prefs.getBoolean("invertControls", false),
+            invertControls = prefs.getBoolean("invertControls", true),
             lensType = prefs.getString("lensType", "normal") ?: "normal",
             projection = prefs.getString("projection", "180") ?: "180",
             layout3d = prefs.getString("layout3d", "sbs") ?: "sbs",
