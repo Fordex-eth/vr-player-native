@@ -1,7 +1,7 @@
 package com.vrplayer.app
 
 import android.Manifest
-import android.app.Activity
+import androidx.activity.ComponentActivity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.hardware.Sensor
@@ -38,7 +38,7 @@ import androidx.media3.exoplayer.ExoPlayer
  * Replaces the old WebView+Three.js approach with a native OpenGL ES 2.0
  * renderer + ExoPlayer for hardware-accelerated video decoding.
  */
-class MainActivity : Activity(), SensorEventListener {
+class MainActivity : ComponentActivity(), SensorEventListener {
 
     // ── Views ──
     private lateinit var glSurfaceView: GLSurfaceView
@@ -196,7 +196,7 @@ class MainActivity : Activity(), SensorEventListener {
                 player = null
             }
         }
-        audioManager?.abandonAudioFocusRequest(audioFocusRequest)
+        audioFocusRequest?.let { audioManager?.abandonAudioFocusRequest(it) }
         super.onDestroy()
     }
 
@@ -237,7 +237,7 @@ class MainActivity : Activity(), SensorEventListener {
         settingsBody = findViewById(R.id.settingsBody)
 
         glSurfaceView = findViewById(R.id.glSurfaceView)
-        glSurfaceView.eglContextClientVersion = 2
+        glSurfaceView.setEGLContextClientVersion(2)
 
         // Wire buttons
         btnSelectVideo.setOnClickListener { pickVideo() }
@@ -834,17 +834,19 @@ class MainActivity : Activity(), SensorEventListener {
 
     private fun updateTimeDisplay() {
         timeUpdater?.let { handler.removeCallbacks(it) }
-        val updater = Runnable {
-            if (isFinishing) return@Runnable
-            player?.let { p ->
-                if (p.duration > 0) {
-                    tvCurrentTime.text = formatTime(p.currentPosition)
-                    tvDuration.text = formatTime(p.duration)
-                    val progress = (p.currentPosition.toFloat() / p.duration * 1000).toInt()
-                    scrubBar.progress = progress
+        val updater = object : Runnable {
+            override fun run() {
+                if (isFinishing) return
+                player?.let { p ->
+                    if (p.duration > 0) {
+                        tvCurrentTime.text = formatTime(p.currentPosition)
+                        tvDuration.text = formatTime(p.duration)
+                        val progress = (p.currentPosition.toFloat() / p.duration * 1000).toInt()
+                        scrubBar.progress = progress
+                    }
                 }
+                handler.postDelayed(this, 250)
             }
-            handler.postDelayed(this, 250)
         }
         timeUpdater = updater
         handler.post(updater)
