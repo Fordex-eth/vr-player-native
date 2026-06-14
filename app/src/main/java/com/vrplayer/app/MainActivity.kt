@@ -327,7 +327,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             val trackSelector = DefaultTrackSelector(this)
             trackSelector.setParameters(
                 trackSelector.buildUponParameters()
-                    .setMaxVideoSize(4096, 2160)
+                    .setMaxVideoSize(7680, 4320)
             )
             player = ExoPlayer.Builder(this)
                 .setTrackSelector(trackSelector)
@@ -351,7 +351,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                             hideSpinner()
                             val msg = error.localizedMessage ?: "Unknown error"
                             if (msg.contains("NO_EXCEEDS_CAPABILITIES")) {
-                                showError("Video resolution too high for this device. Try a lower-res video (4K or less).")
+                                showError("Video codec/resolution not supported. Try H.264 instead of H.265, or a lower resolution.")
                             } else {
                                 showError("Playback error: $msg")
                             }

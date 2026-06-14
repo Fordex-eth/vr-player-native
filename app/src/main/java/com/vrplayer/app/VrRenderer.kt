@@ -166,7 +166,12 @@ class VrRenderer : GLSurfaceView.Renderer {
         GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
             GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
 
-        surfaceTexture = SurfaceTexture(texId[0])
+        surfaceTexture = SurfaceTexture(texId[0]).also { st ->
+            // Must set default buffer size so the decoder knows the surface
+            // can accept video frames up to this resolution. Without this,
+            // many hardware decoders reject the surface with NO_EXCEEDS_CAPABILITIES.
+            st.setDefaultBufferSize(7680, 4320)
+        }
         surfaceTexture?.setOnFrameAvailableListener {
             frameAvailable = true
             onRequestRender?.invoke()
