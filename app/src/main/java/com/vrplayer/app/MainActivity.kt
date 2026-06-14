@@ -1002,6 +1002,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         }
     }
 
+    @Suppress("DEPRECATION")
     override fun onRequestPermissionsResult(
         requestCode: Int, permissions: Array<String>, grantResults: IntArray
     ) {
