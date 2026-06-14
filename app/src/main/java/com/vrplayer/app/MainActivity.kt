@@ -39,6 +39,7 @@ import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
  * Replaces the old WebView+Three.js approach with a native OpenGL ES 2.0
  * renderer + ExoPlayer for hardware-accelerated video decoding.
  */
+@OptIn(androidx.media3.common.util.UnstableApi::class)
 class MainActivity : ComponentActivity(), SensorEventListener {
 
     // ── Views ──
