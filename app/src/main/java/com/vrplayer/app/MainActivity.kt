@@ -31,6 +31,7 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 
 /**
  * Native VR Player for Android.
@@ -323,7 +324,13 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
         videoSurface = Surface(surfaceTexture)
         try {
+            val trackSelector = DefaultTrackSelector(this)
+            trackSelector.setParameters(
+                trackSelector.buildUponParameters()
+                    .setMaxVideoSize(4096, 2160)
+            )
             player = ExoPlayer.Builder(this)
+                .setTrackSelector(trackSelector)
                 .build()
                 .also { p ->
                     p.setVideoSurface(videoSurface)
@@ -342,7 +349,12 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                         }
                         override fun onPlayerError(error: PlaybackException) {
                             hideSpinner()
-                            showError("Playback error: ${error.localizedMessage}")
+                            val msg = error.localizedMessage ?: "Unknown error"
+                            if (msg.contains("NO_EXCEEDS_CAPABILITIES")) {
+                                showError("Video resolution too high for this device. Try a lower-res video (4K or less).")
+                            } else {
+                                showError("Playback error: $msg")
+                            }
                         }
                     })
                     p.volume = settings.volume
