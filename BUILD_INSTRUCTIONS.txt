@@ -1,0 +1,129 @@
+VR Player Native v2.0 - Build Instructions
+=========================================
+
+OVERVIEW
+--------
+This is a complete rewrite of the VR Player using native Android APIs instead
+of the old WebView+Three.js approach. The native version uses:
+
+  - ExoPlayer (Media3) for hardware-accelerated video decoding
+  - OpenGL ES 2.0 for rendering video onto a 180/360 sphere
+  - Android SensorManager for gyroscope head tracking
+  - Android Views for the UI overlay
+
+This eliminates the performance lag caused by JavaScript interpretation and
+WebView compositing overhead.
+
+
+PREREQUISITES
+-------------
+1. Install Android Studio:
+   https://developer.android.com/studio
+
+2. During setup, accept the Android SDK license and install:
+   - Android SDK 35 (Android 15)
+   - Android SDK Build-Tools
+   (Android Studio prompts for these automatically)
+
+
+BUILD THE APK
+-------------
+1. Open Android Studio
+
+2. Click "Open" and navigate to this folder:
+   C:\Users\cliff\VR Player Native
+
+3. Android Studio will sync the project (may take a few minutes
+   the first time as it downloads Gradle and dependencies).
+
+4. If prompted about Gradle version, click "OK" to let Android
+   Studio update it.
+
+5. Build the APK:
+   - Menu: Build > Build Bundle(s) / APK(s) > Build APK(s)
+   - Or press Ctrl+F9 to build
+
+6. Find the APK at:
+   app/build/outputs/apk/debug/app-debug.apk
+
+
+INSTALL ON YOUR PHONE
+---------------------
+Option A - USB cable:
+   1. Connect your phone via USB
+   2. Enable "USB debugging" in Developer Options on your phone
+   3. In Android Studio, click the green Run button (or Shift+F10)
+   4. Select your phone from the device list
+   5. The app installs and launches automatically
+
+Option B - Transfer the APK file:
+   1. Build the APK (step 5 above)
+   2. Copy app-debug.apk to your phone (via USB, cloud, etc.)
+   3. On your phone, open the APK file to install
+   4. You may need to enable "Install from unknown sources"
+      in Settings > Security
+
+
+USING THE APP
+-------------
+- Open "VR Player" from your app drawer
+- Tap "Select Video" and pick a VR video file
+- Move your phone around to look inside the video
+- Tap the screen to show/hide playback controls
+- Double-tap to play/pause
+- Open Settings (gear icon) to change projection, layout, etc.
+
+
+PROJECT STRUCTURE
+-----------------
+VR Player Native/
+  app/src/main/
+    AndroidManifest.xml              - Permissions and app config
+    res/
+      drawable/                      - Vector icons and shape drawables
+      layout/
+        activity_main.xml            - GLSurfaceView + overlay controls
+        setting_toggle.xml           - Toggle row for settings panel
+        setting_slider.xml           - Slider row for settings panel
+        setting_radio.xml            - Radio row for settings panel
+      values/
+        strings.xml                  - App strings
+        themes.xml                   - Dark fullscreen theme
+    java/com/vrplayer/app/
+      MainActivity.kt                - Main orchestrator (sensors, player, UI)
+      VrRenderer.kt                  - OpenGL ES renderer (sphere, shaders)
+
+
+KEY FILES
+---------
+- MainActivity.kt (400+ lines)
+  Activity setup, ExoPlayer lifecycle, sensor management,
+  touch handling, UI wiring, settings persistence
+
+- VrRenderer.kt (300+ lines)
+  OpenGL ES 2.0 renderer: sphere geometry generation, shader
+  compilation, SurfaceTexture + ExoPlayer integration,
+  camera matrix from sensors/drag, SBS/OU/Mono layout support
+
+
+PERFORMANCE NOTES
+-----------------
+- ExoPlayer uses the device's hardware video decoder (MediaCodec),
+  supporting H.264, H.265 (HEVC), and VP9 without the browser overhead.
+- OpenGL ES renders directly to the GPU - no WebGL/JNI bridge.
+- Sensor data goes straight to the render thread with zero GC pauses.
+- The 3D rendering is single-threaded GLSurfaceView with RENDERMODE_CONTINUOUSLY.
+
+
+ARCHITECTURE CHANGE (vs v1)
+----------------------------
+  v1 (old): WebView -> HTML -> Three.js (WebGL) -> <video> element
+  v2 (new): GLSurfaceView + ExoPlayer -> OpenGL ES -> SurfaceTexture
+
+  The WebView approach incurred:
+  - JavaScript execution overhead every frame
+  - WebView compositor pass (extra GPU copy)
+  - Limited codec support (browser <video>)
+  - GC pauses during JS garbage collection
+
+  The native approach eliminates all of these.

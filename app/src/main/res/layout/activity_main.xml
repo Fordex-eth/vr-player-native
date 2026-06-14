@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:keepScreenOn="true"
+    android:background="#000"
+    tools:context=".MainActivity">
+
+    <!-- Layer 1: OpenGL VR rendering surface -->
+    <android.opengl.GLSurfaceView
+        android:id="@+id/glSurfaceView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- Layer 2: Start screen -->
+    <LinearLayout
+        android:id="@+id/startScreen"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="visible"
+        android:clickable="true"
+        android:focusable="true">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/app_name"
+            android:textSize="24sp"
+            android:textColor="#fff"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/subtitle"
+            android:textSize="14sp"
+            android:textColor="#888"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="32dp" />
+
+        <Button
+            android:id="@+id/btnSelectVideo"
+            android:layout_width="200dp"
+            android:layout_height="50dp"
+            android:text="@string/select_video"
+            android:textSize="16sp"
+            android:textColor="#fff"
+            android:background="@drawable/btn_primary"
+            android:stateListAnimator="@null" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/hint"
+            android:textSize="12sp"
+            android:textColor="#666"
+            android:layout_marginTop="16dp" />
+    </LinearLayout>
+
+    <!-- Layer 3: Player scene + controls -->
+    <FrameLayout
+        android:id="@+id/playerView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <!-- Close button -->
+        <ImageButton
+            android:id="@+id/btnClose"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_margin="12dp"
+            android:src="@drawable/ic_close"
+            android:background="@drawable/bg_circle_50"
+            android:scaleType="center"
+            android:contentDescription="@string/close" />
+
+        <!-- Toast -->
+        <TextView
+            android:id="@+id/toastText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:paddingLeft="24dp"
+            android:paddingRight="24dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:background="@drawable/bg_toast"
+            android:textSize="16sp"
+            android:textColor="#fff"
+            android:visibility="gone" />
+
+        <!-- Spinner -->
+        <ProgressBar
+            android:id="@+id/spinner"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center"
+            android:indeterminateTint="#fff"
+            android:visibility="gone" />
+
+        <!-- Error overlay -->
+        <LinearLayout
+            android:id="@+id/errorOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:background="#D8000000"
+            android:visibility="gone">
+            <TextView
+                android:id="@+id/errorText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                android:textColor="#fff"
+                android:gravity="center"
+                android:padding="20dp" />
+            <Button
+                android:id="@+id/btnRetry"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/try_another"
+                android:background="@drawable/btn_primary"
+                android:stateListAnimator="@null" />
+        </LinearLayout>
+
+        <!-- GUI Bar -->
+        <LinearLayout
+            android:id="@+id/guiBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:orientation="vertical"
+            android:paddingTop="28dp"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:paddingBottom="10dp"
+            android:clipToPadding="false"
+            android:background="@drawable/bg_gui_bar"
+            android:visibility="visible">
+
+            <!-- Transport row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:orientation="horizontal">
+                <ImageButton
+                    android:id="@+id/btnSkipBack"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@drawable/ic_skip_back"
+                    android:background="@null"
+                    android:scaleType="center"
+                    android:contentDescription="@string/skip_back" />
+                <ImageButton
+                    android:id="@+id/btnPlayPause"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:src="@drawable/ic_play"
+                    android:background="@null"
+                    android:scaleType="center"
+                    android:contentDescription="@string/play_pause" />
+                <ImageButton
+                    android:id="@+id/btnSkipFwd"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@drawable/ic_skip_fwd"
+                    android:background="@null"
+                    android:scaleType="center"
+                    android:contentDescription="@string/skip_fwd" />
+            </LinearLayout>
+
+            <!-- Scrubber row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <TextView
+                    android:id="@+id/tvCurrentTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0:00"
+                    android:textSize="13sp"
+                    android:textColor="#ccc"
+                    android:minWidth="38dp"
+                    android:gravity="center" />
+                <SeekBar
+                    android:id="@+id/scrubBar"
+                    android:layout_width="0dp"
+                    android:layout_height="32dp"
+                    android:layout_weight="1"
+                    android:max="1000"
+                    android:progress="0"
+                    android:progressDrawable="@drawable/scrubber_progress"
+                    android:thumb="@drawable/scrubber_thumb"
+                    android:thumbTint="#fff" />
+                <TextView
+                    android:id="@+id/tvDuration"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0:00"
+                    android:textSize="13sp"
+                    android:textColor="#ccc"
+                    android:minWidth="38dp"
+                    android:gravity="center" />
+            </LinearLayout>
+
+            <!-- Bottom row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <!-- Volume -->
+                <ImageButton
+                    android:id="@+id/btnVolume"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:src="@drawable/ic_volume_high"
+                    android:background="@null"
+                    android:scaleType="center"
+                    android:contentDescription="@string/volume" />
+                <SeekBar
+                    android:id="@+id/volumeSlider"
+                    android:layout_width="80dp"
+                    android:layout_height="32dp"
+                    android:max="100"
+                    android:progress="100"
+                    android:progressDrawable="@drawable/vol_progress"
+                    android:thumb="@drawable/scrubber_thumb"
+                    android:thumbTint="#fff" />
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
+                <ImageButton
+                    android:id="@+id/btnSettings"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:src="@drawable/ic_gear"
+                    android:background="@null"
+                    android:scaleType="center"
+                    android:contentDescription="@string/settings" />
+                <ImageButton
+                    android:id="@+id/btnFullscreen"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:src="@drawable/ic_fullscreen"
+                    android:background="@null"
+                    android:scaleType="center"
+                    android:contentDescription="@string/fullscreen" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Settings panel -->
+        <FrameLayout
+            android:id="@+id/settingsBackdrop"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#66000000"
+            android:visibility="gone"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <LinearLayout
+            android:id="@+id/settingsPanel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:orientation="vertical"
+            android:background="#1a1a1a"
+            android:visibility="gone">
+            <!-- Settings header -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:paddingLeft="18dp"
+                android:paddingRight="18dp"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp"
+                android:background="#1a1a1a">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/settings"
+                    android:textSize="17sp"
+                    android:textColor="#fff"
+                    android:textStyle="bold" />
+                <ImageButton
+                    android:id="@+id/btnSettingsClose"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@drawable/ic_close"
+                    android:background="@null"
+                    android:scaleType="center"
+                    android:contentDescription="@string/close" />
+            </LinearLayout>
+            <!-- Settings body: scrollable, filled programmatically -->
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:paddingLeft="18dp"
+                android:paddingRight="18dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="24dp">
+                <LinearLayout
+                    android:id="@+id/settingsBody"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </ScrollView>
+        </LinearLayout>
+    </FrameLayout>
+
+</FrameLayout>
