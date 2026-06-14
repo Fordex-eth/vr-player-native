@@ -32,9 +32,6 @@ class VrRenderer : GLSurfaceView.Renderer {
     // ── Private lock for cross-thread safety (avoids public `this` lock) ──
     private val lock = Any()
 
-    // ── Request render callback for RENDERMODE_WHEN_DIRTY ──
-    var onRequestRender: (() -> Unit)? = null
-
     // ── Camera state ──
     private val projectionMatrix = FloatArray(16)
     private val viewMatrix = FloatArray(16)
@@ -174,7 +171,6 @@ class VrRenderer : GLSurfaceView.Renderer {
         }
         surfaceTexture?.setOnFrameAvailableListener {
             frameAvailable = true
-            onRequestRender?.invoke()
         }
         onSurfaceReady?.invoke(surfaceTexture!!)
 
@@ -242,6 +238,13 @@ class VrRenderer : GLSurfaceView.Renderer {
         } catch (e: Exception) {
             Log.w("VrRenderer", "Frame update failed", e)
         }
+
+        // Remove the SurfaceTexture's built-in Y flip. Android's SurfaceTexture
+        // matrix has y=0 at the bottom (graphics buffer convention) but OpenGL
+        // sphere textures expect y=0 at the top. For environment/sphere mapping
+        // we need to undo this so the top of the video maps to the top of the sphere.
+        texMatrix[5] = -texMatrix[5]   // negate Y scale
+        texMatrix[13] = 1f - texMatrix[13]  // adjust Y offset
 
         // Compose: apply layout transform AFTER the SurfaceTexture's own transform.
         // This way the SBS/OU half-selection is applied on top of the video frame's

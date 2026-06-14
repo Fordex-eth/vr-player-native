@@ -68,6 +68,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     // Toast
     private lateinit var toastText: TextView
     private lateinit var spinner: View
+    private lateinit var motionPaused: TextView
     private lateinit var errorOverlay: View
     private lateinit var errorText: TextView
     private lateinit var btnRetry: Button
@@ -103,6 +104,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     private var pinchFov0 = 75f
     private var guiVisible = true
     private var guiTimer: Runnable? = null
+    private var motionHoldTimer: Runnable? = null
+    private var motionHoldOn = false
     private val GUI_TIMEOUT_MS = 3000L
 
     // ── Handler for main thread scheduling ──
@@ -229,6 +232,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         btnFullscreen = findViewById(R.id.btnFullscreen)
         toastText = findViewById(R.id.toastText)
         spinner = findViewById(R.id.spinner)
+        motionPaused = findViewById(R.id.motionPaused)
         errorOverlay = findViewById(R.id.errorOverlay)
         errorText = findViewById(R.id.errorText)
         btnRetry = findViewById(R.id.btnRetry)
@@ -296,9 +300,6 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         renderer.onSurfaceReady = { surfaceTexture ->
             runOnUiThread { initPlayer(surfaceTexture) }
         }
-        renderer.onRequestRender = {
-            glSurfaceView.requestRender()
-        }
         renderer.useGyro = settings.motionSensor
         renderer.fov = 75f
         renderer.isFisheye = settings.lensType == "fisheye"
@@ -313,7 +314,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         }
         renderer.setQuality(h, v)
         glSurfaceView.setRenderer(renderer)
-        glSurfaceView.renderMode = GLSurfaceView.RENDERMODE_WHEN_DIRTY
+        glSurfaceView.renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
     }
 
     @UnstableApi
@@ -460,12 +461,24 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             MotionEvent.ACTION_DOWN -> {
                 isDragging = true
                 dragStarted = false
+                motionHoldOn = false
                 lastTouchX = event.x
                 lastTouchY = event.y
+                // Start touch-hold timer for motion pause (like HTML version)
+                motionHoldTimer?.let { handler.removeCallbacks(it) }
+                if (renderer.useGyro && settings.motionSensor) {
+                    val r = Runnable {
+                        motionHoldOn = true
+                        motionPaused.visibility = View.VISIBLE
+                    }
+                    motionHoldTimer = r
+                    handler.postDelayed(r, 500)
+                }
             }
             MotionEvent.ACTION_POINTER_DOWN -> {
                 if (event.pointerCount == 2) {
                     isDragging = false
+                    motionHoldTimer?.let { handler.removeCallbacks(it) }
                     isPinching = true
                     pinchDist0 = pinchDistance(event)
                     pinchFov0 = renderer.fov
@@ -486,7 +499,6 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                     val dist = pinchDistance(event)
                     val ratio = pinchDist0 / dist
                     renderer.fov = (pinchFov0 * ratio).coerceIn(30f, 150f)
-                    glSurfaceView.requestRender()
                     return
                 }
 
@@ -496,6 +508,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
                     if (!dragStarted && (Math.abs(dx) > 5f || Math.abs(dy) > 5f)) {
                         dragStarted = true
+                        // Cancel motion hold on significant movement
+                        motionHoldTimer?.let { handler.removeCallbacks(it) }
                     }
 
                     if (dragStarted && !renderer.useGyro) {
@@ -503,7 +517,6 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                         renderer.dragLon += dx * 0.3f * inv
                         renderer.dragLat += dy * 0.3f * inv
                         renderer.dragLat = renderer.dragLat.coerceIn(-85f, 85f)
-                        glSurfaceView.requestRender()
                     }
 
                     lastTouchX = event.x
@@ -513,6 +526,11 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 isDragging = false
                 isPinching = false
+                motionHoldTimer?.let { handler.removeCallbacks(it) }
+                if (motionHoldOn) {
+                    motionHoldOn = false
+                    motionPaused.visibility = View.GONE
+                }
             }
         }
     }
@@ -539,6 +557,13 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
         startScreen.visibility = View.GONE
         playerView.visibility = View.VISIBLE
+
+        // Slide GUI bar up from below on first show
+        guiBar.post {
+            guiBar.translationY = guiBar.height.toFloat()
+            guiBar.animate().translationY(0f).setDuration(250).start()
+        }
+        resetGuiTimer()
 
         // Reset drag
         renderer.dragLon = 0f
@@ -609,8 +634,14 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
     private fun toggleGui() {
         guiVisible = !guiVisible
-        guiBar.visibility = if (guiVisible) View.VISIBLE else View.GONE
-        if (guiVisible) resetGuiTimer()
+        if (guiVisible) {
+            guiBar.visibility = View.VISIBLE
+            guiBar.animate().translationY(0f).setDuration(250).start()
+            resetGuiTimer()
+        } else {
+            guiBar.animate().translationY(guiBar.height.toFloat()).setDuration(250)
+                .withEndAction { guiBar.visibility = View.GONE }.start()
+        }
     }
 
     private fun resetGuiTimer() {
@@ -619,7 +650,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             val r = Runnable {
                 if (!settingsPanel.isShown) {
                     guiVisible = false
-                    guiBar.visibility = View.GONE
+                    guiBar.animate().translationY(guiBar.height.toFloat()).setDuration(250)
+                        .withEndAction { guiBar.visibility = View.GONE }.start()
                 }
             }
             guiTimer = r
@@ -690,13 +722,20 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         }
         settingsBackdrop.visibility = View.VISIBLE
         settingsPanel.visibility = View.VISIBLE
-        guiBar.visibility = View.GONE
+        settingsPanel.translationY = settingsPanel.height.toFloat()
+        settingsPanel.animate().translationY(0f).setDuration(300).start()
+        // Slide GUI bar down out of view
+        guiBar.animate().translationY(guiBar.height.toFloat()).setDuration(200).start()
     }
 
     private fun closeSettings() {
         settingsBackdrop.visibility = View.GONE
-        settingsPanel.visibility = View.GONE
-        if (guiVisible) guiBar.visibility = View.VISIBLE
+        settingsPanel.animate().translationY(settingsPanel.height.toFloat()).setDuration(300)
+            .withEndAction { settingsPanel.visibility = View.GONE }.start()
+        if (guiVisible) {
+            guiBar.visibility = View.VISIBLE
+            guiBar.animate().translationY(0f).setDuration(200).start()
+        }
         resetGuiTimer()
     }
 
