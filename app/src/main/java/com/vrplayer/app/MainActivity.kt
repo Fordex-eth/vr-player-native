@@ -406,7 +406,10 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         if (rotationSensor == null) {
             hasGyro = false
             renderer.useGyro = false
-            showToast("Gyroscope not available")
+            Log.w("VRPlayer", "TYPE_ROTATION_VECTOR sensor not available on this device")
+            showToast("Gyroscope not available — using touch controls")
+        } else {
+            Log.i("VRPlayer", "TYPE_ROTATION_VECTOR sensor available: ${rotationSensor.name}")
         }
     }
 
@@ -420,6 +423,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         if (event.sensor.type == Sensor.TYPE_ROTATION_VECTOR) {
             if (!hasGyro) {
                 hasGyro = true
+                Log.i("VRPlayer", "First rotation_vector event received, motionSensor=${settings.motionSensor}")
                 if (settings.motionSensor) {
                     renderer.useGyro = true
                 }
