@@ -409,7 +409,10 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             Log.w("VRPlayer", "TYPE_ROTATION_VECTOR sensor not available on this device")
             showToast("Gyroscope not available — using touch controls")
         } else {
-            Log.i("VRPlayer", "TYPE_ROTATION_VECTOR sensor available: ${rotationSensor.name}")
+            // Local val so Kotlin can smart-cast; rotationSensor is a `var` so it
+            // can't be smart-cast directly in the string template.
+            val sensor = rotationSensor
+            Log.i("VRPlayer", "TYPE_ROTATION_VECTOR sensor available: ${sensor.name}")
         }
     }
 
