@@ -409,10 +409,13 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             Log.w("VRPlayer", "TYPE_ROTATION_VECTOR sensor not available on this device")
             showToast("Gyroscope not available — using touch controls")
         } else {
-            // Local val so Kotlin can smart-cast; rotationSensor is a `var` so it
-            // can't be smart-cast directly in the string template.
-            val sensor = rotationSensor
-            Log.i("VRPlayer", "TYPE_ROTATION_VECTOR sensor available: ${sensor.name}")
+            // `!!` is safe here — the null check on the line above guarantees
+            // rotationSensor is non-null in this branch. We can't use a plain
+            // `val sensor = rotationSensor` because the val would still be
+            // typed as `Sensor?` (assigning a nullable value to a val doesn't
+            // strip the nullability), and Kotlin won't smart-cast a `var` field
+            // even after a null check on the same instance.
+            Log.i("VRPlayer", "TYPE_ROTATION_VECTOR sensor available: ${rotationSensor!!.name}")
         }
     }
 
