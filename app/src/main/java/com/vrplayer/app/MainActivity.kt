@@ -428,24 +428,39 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             // Guard: don't push sensor data when motion sensor is turned off
             if (!settings.motionSensor) return
 
-            // Get rotation matrix from sensor
-            SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)
+            // Get rotation matrix from sensor.  Bail on invalid data (sensor not yet
+            // calibrated — happens during the first few callbacks on some devices).
+            if (!SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)) return
 
-            // Remap for landscape display orientation.
-            // windowManager.defaultDisplay.rotation returns Surface.ROTATION_*
-            // (0=ROTATION_0, 1=ROTATION_90, 2=ROTATION_180, 3=ROTATION_270).
+            // Remap the rotation matrix so its axes align with the screen rather than
+            // the device's natural (portrait) orientation.  The Android device axes are:
+            //   X → right, Y → up, Z → out of screen toward user.
+            // When the phone is rotated (e.g. landscape in a VR headset) the screen
+            // axes no longer match the device axes, so we remap them for each of the
+            // four possible Surface rotations.
             @Suppress("DEPRECATION")
-            val rot = windowManager.defaultDisplay.rotation
             val axisX: Int
             val axisY: Int
-            when (rot) {
-                Surface.ROTATION_90, Surface.ROTATION_270 -> {
+            when (windowManager.defaultDisplay.rotation) {
+                Surface.ROTATION_0 -> {   // portrait, natural
+                    axisX = SensorManager.AXIS_X
+                    axisY = SensorManager.AXIS_Y
+                }
+                Surface.ROTATION_90 -> {  // landscape, top to left
                     axisX = SensorManager.AXIS_Y
-                    axisY = SensorManager.AXIS_Z
+                    axisY = SensorManager.AXIS_MINUS_X
+                }
+                Surface.ROTATION_180 -> { // reverse portrait
+                    axisX = SensorManager.AXIS_MINUS_X
+                    axisY = SensorManager.AXIS_MINUS_Y
+                }
+                Surface.ROTATION_270 -> { // landscape, top to right
+                    axisX = SensorManager.AXIS_MINUS_Y
+                    axisY = SensorManager.AXIS_X
                 }
                 else -> {
                     axisX = SensorManager.AXIS_X
-                    axisY = SensorManager.AXIS_Z
+                    axisY = SensorManager.AXIS_Y
                 }
             }
             // Write to a fresh local array each time — no data race with UI thread
